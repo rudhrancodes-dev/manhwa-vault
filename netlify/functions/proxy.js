@@ -17,37 +17,55 @@ export const handler = async (event) => {
   }
 
   // Block local/internal addresses (SSRF protection)
-  const blocked = ['localhost', '127.0.0.1', '0.0.0.0', '::1'];
   if (
-    blocked.includes(parsed.hostname) ||
-    /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(parsed.hostname)
+    /^(localhost|127\.|0\.0\.0\.0|::1|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(
+      parsed.hostname
+    )
   ) {
     return { statusCode: 403, body: 'Internal addresses not allowed' };
   }
 
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'ManhwaVault/1.0' },
+      headers: {
+        'User-Agent': 'ManhwaVault/1.0 (personal reader)',
+        Accept: '*/*',
+      },
     });
 
-    if (!res.ok) {
-      return { statusCode: res.status, body: 'Upstream error' };
+    const contentType = res.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json') || contentType.includes('text/')) {
+      // Text/JSON response
+      const text = await res.text();
+      return {
+        statusCode: res.status,
+        headers: {
+          'Content-Type': contentType,
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=60',
+        },
+        body: text,
+      };
+    } else {
+      // Binary (image) response
+      const buffer = await res.arrayBuffer();
+      return {
+        statusCode: res.status,
+        headers: {
+          'Content-Type': contentType || 'image/jpeg',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=3600',
+        },
+        body: Buffer.from(buffer).toString('base64'),
+        isBase64Encoded: true,
+      };
     }
-
-    const buffer = await res.arrayBuffer();
-    const contentType = res.headers.get('content-type') || 'image/jpeg';
-
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=3600',
-      },
-      body: Buffer.from(buffer).toString('base64'),
-      isBase64Encoded: true,
-    };
   } catch (err) {
-    return { statusCode: 500, body: 'Failed to proxy image' };
+    return {
+      statusCode: 502,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Proxy request failed', detail: err.message }),
+    };
   }
 };

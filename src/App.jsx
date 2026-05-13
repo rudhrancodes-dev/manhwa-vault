@@ -8,24 +8,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <Routes>
-        <Route
-          path="/"
-          element={
-            <>
-              <Navbar />
-              <Home />
-            </>
-          }
-        />
-        <Route
-          path="/manga/:id"
-          element={
-            <>
-              <Navbar />
-              <MangaDetail />
-            </>
-          }
-        />
+        <Route path="/" element={<><Navbar /><Home /></>} />
+        {/* Source-prefixed routes */}
+        <Route path="/manga/:source/:id" element={<><Navbar /><MangaDetail /></>} />
+        <Route path="/manga/:source/:id/chapter/:chapterId" element={<Reader />} />
+        {/* Legacy MangaDex routes (no source prefix) */}
+        <Route path="/manga/:id" element={<><Navbar /><MangaDetail /></>} />
         <Route path="/manga/:id/chapter/:chapterId" element={<Reader />} />
       </Routes>
     </div>

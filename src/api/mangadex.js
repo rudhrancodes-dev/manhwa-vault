@@ -1,4 +1,10 @@
-const BASE = 'https://api.mangadex.org';
+// All requests go through the Netlify proxy function to avoid CORS/rate-limit issues
+const PROXY = '/.netlify/functions/proxy';
+const MANGADEX_BASE = 'https://api.mangadex.org';
+
+function proxyUrl(path) {
+  return `${PROXY}?url=${encodeURIComponent(MANGADEX_BASE + path)}`;
+}
 
 function qs(params) {
   const parts = [];
@@ -13,7 +19,7 @@ function qs(params) {
 }
 
 async function apiFetch(path) {
-  const res = await fetch(`${BASE}${path}`);
+  const res = await fetch(proxyUrl(path));
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -96,4 +102,22 @@ export function extractCover(manga) {
   const rel = manga.relationships?.find(r => r.type === 'cover_art');
   if (!rel?.attributes?.fileName) return null;
   return getCoverUrl(manga.id, rel.attributes.fileName);
+}
+
+export function normalizeItem(manga) {
+  return {
+    id: manga.id,
+    source: 'mangadex',
+    title: extractTitle(manga),
+    cover: extractCover(manga),
+    status: manga.attributes?.status,
+    rating: manga.attributes?.rating?.bayesian ?? null,
+    tags: (manga.attributes?.tags || []).map(t => t.attributes.name.en),
+    description:
+      manga.attributes?.description?.en ||
+      Object.values(manga.attributes?.description || {})[0] ||
+      '',
+    author: manga.relationships?.find(r => r.type === 'author')?.attributes?.name,
+    raw: manga,
+  };
 }

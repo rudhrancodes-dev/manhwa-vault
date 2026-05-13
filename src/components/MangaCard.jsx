@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { extractTitle, extractCover } from '../api/mangadex';
-import { Star } from 'lucide-react';
+import { Star, BookOpen } from 'lucide-react';
 
 const STATUS_COLORS = {
   ongoing: 'bg-green-900/70 text-green-400',
@@ -9,14 +8,12 @@ const STATUS_COLORS = {
   cancelled: 'bg-red-900/70 text-red-400',
 };
 
-export default function MangaCard({ manga }) {
-  const title = extractTitle(manga);
-  const cover = extractCover(manga);
-  const status = manga.attributes?.status;
-  const rating = manga.attributes?.rating?.bayesian;
+// Accepts a normalized item: { id, source, title, cover, status, rating }
+export default function MangaCard({ item }) {
+  const { id, source, title, cover, status, rating } = item;
 
   return (
-    <Link to={`/manga/${manga.id}`} className="group block">
+    <Link to={`/manga/${source}/${id}`} className="group block">
       <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#1a1a1a] border border-[#222] group-hover:border-purple-500/60 transition-all duration-200 shadow-lg">
         {cover ? (
           <img
@@ -32,7 +29,9 @@ export default function MangaCard({ manga }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
         {status && (
-          <div className={`absolute top-2 left-2 text-[10px] font-semibold px-1.5 py-0.5 rounded ${STATUS_COLORS[status] || 'bg-gray-800 text-gray-400'}`}>
+          <div
+            className={`absolute top-2 left-2 text-[10px] font-semibold px-1.5 py-0.5 rounded ${STATUS_COLORS[status] || 'bg-gray-800 text-gray-400'}`}
+          >
             {status}
           </div>
         )}
